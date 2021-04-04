@@ -3,6 +3,8 @@ import time
 import configparser
 import os
 import pandas as pd
+import csv
+
 
 
 
@@ -48,13 +50,13 @@ def Run_Thread():
         try:
             first_elec = electrodes.index(True)
             filename = os.path.join(folder_path,files[-1])
-            Data = pd.read_csv(filename,delimiter="\t")
-            Data_np = Data.to_numpy()
+            Data = Read_file_data(filename)
+            Data_np = np.array(Data)
             Navi_Elec = Data_np[:,0:3]            
             Basket_Elec = Get_electrode_data(first_elec,Data_np)
             min_dist = (Basket_Elec - Navi_Elec)
             distance_to_next_elec = np.sqrt(min_dist[:,0]*min_dist[:,0] +min_dist[:,1]*min_dist[:,1]+min_dist[:,2]*min_dist[:,2])
-            print(f'Distance to the next electrode: {distance_to_next_elec[-1]}')
+            print(f'Distance to the next electrode: {np.round(distance_to_next_elec[-1],2)}')
         except:
             print('Sequence complete......')
             print('Exiting......')
@@ -68,8 +70,8 @@ def Get_electrode_data(elec_id,Data_np):
     return Data_np[:,33+3*elec_id:36+3*elec_id]
 
 def File_analyzer(filename,electrodes,tolerance):
-    Data = pd.read_csv(filename,delimiter="\t")
-    Data_np = Data.to_numpy()
+    Data = Read_file_data(filename)
+    Data_np = np.array(Data)
     Navi_Elec = Data_np[:,0:3]
     for el_num, el in enumerate(electrodes):            
         if el:
@@ -77,12 +79,26 @@ def File_analyzer(filename,electrodes,tolerance):
                 Basket_Elec = Get_electrode_data(el_num,Data_np)
                 min_dist = (Basket_Elec - Navi_Elec)
                 dist = np.sqrt(min_dist[:,0]*min_dist[:,0] +min_dist[:,1]*min_dist[:,1]+min_dist[:,2]*min_dist[:,2])
+                # print(f'Electrode # {el_num}, distance {np.min(dist)}')
                 if np.min(dist)<=tolerance:
                     electrodes[el_num] = False
             except:
                 pass
     return electrodes
 
+def Read_file_data(path_):
+    Data = []
+    with open(path_,'r') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter='\t')
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                line_count +=1
+                continue
+            else:
+                Data.append([float(i) for i in row if len(i)])
+            line_count+=1
+    return Data
 
 if __name__ == "__main__":
     print('Starting visualization POD pivot')
